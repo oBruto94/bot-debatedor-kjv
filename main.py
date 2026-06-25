@@ -1,14 +1,16 @@
 import os
 import telebot
-from google import genai
+import google.generativeai as genai
 
 # Puxa as chaves de configuração do Railway
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# Inicializa o Bot do Telegram e o Gemini
+# Configura a IA da Google com a sua chave
+genai.configure(api_key=GEMINI_API_KEY)
+
+# Inicializa o Bot do Telegram
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
-client = genai.Client(api_key=GEMINI_API_KEY)
 
 @bot.message_handler(commands=['start', 'help'])
 def send_welcome(message):
@@ -17,7 +19,10 @@ def send_welcome(message):
 @bot.message_handler(func=lambda message: True)
 def responder_gemini(message):
     try:
-        # Cria o contexto para o robô agir como um debatedor teológico baseado na KJV
+        # Define o modelo clássico e estável da Google
+        model = genai.GenerativeModel('gemini-pro')
+        
+        # Cria o contexto teológico
         contexto = (
             "Você é um debatedor teológico experiente e fiel defensor da sã doutrina bíblica "
             "com base estrita na Bíblia King James Version (KJV). Responda ao usuário argumentando "
@@ -25,18 +30,15 @@ def responder_gemini(message):
             "Aqui está o argumento do usuário: "
         )
         
-        # Envia a pergunta para a Inteligência Artificial do Gemini
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=contexto + message.text,
-        )
+        # Gera a resposta
+        response = model.generate_content(contexto + message.text)
         
-        # Envia a resposta da IA de volta para o usuário no Telegram
+        # Envia de volta para o Telegram
         bot.reply_to(message, response.text)
         
     except Exception as e:
         print(f"Erro: {e}")
-        bot.reply_to(message, "Desculpe, tive um problema interno ao processar seu argumento com a IA. Tente novamente.")
+        bot.reply_to(message, "Desculpe, tive um problema ao processar seu argumento. Tente novamente.")
 
-# Mantém o robô rodando direto
+# Mantém o robô rodando
 bot.infinity_polling()
